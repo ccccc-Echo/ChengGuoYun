@@ -1,0 +1,733 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "成果云系统API文档",
+    "description": "成果云系统后端接口文档（Flask + MySQL）",
+    "version": "1.0.0"
+  },
+  "basePath": "/",
+  "schemes": ["http"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "登录后返回的 Bearer Token，格式：Bearer <access_token>"
+    }
+  },
+  "tags": [
+    {"name": "认证", "description": "登录、用户信息"},
+    {"name": "注册", "description": "用户注册"},
+    {"name": "成果", "description": "成果管理"},
+    {"name": "学生", "description": "学生管理"},
+    {"name": "教师", "description": "教师管理"},
+    {"name": "课程", "description": "课程管理"},
+    {"name": "团队", "description": "团队管理"},
+    {"name": "权限", "description": "角色与权限"},
+    {"name": "统计", "description": "统计报表"},
+    {"name": "设置", "description": "系统设置"},
+    {"name": "知识库", "description": "知识库管理"},
+    {"name": "导出", "description": "导出证书"},
+    {"name": "用户", "description": "个人中心"},
+    {"name": "日志", "description": "系统日志"},
+    {"name": "备份", "description": "数据备份"}
+  ],
+  "paths": {
+
+    "/api/auth/login": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "用户登录",
+        "description": "登录成功返回 access_token 与用户信息",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "username": {"type": "string", "example": "admin"},
+                "password": {"type": "string", "example": "123456"}
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {"description": "登录成功，返回 token 和用户信息"},
+          "401": {"description": "密码错误"},
+          "404": {"description": "用户名不存在"}
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["认证"],
+        "summary": "获取当前登录用户信息",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {"description": "返回当前用户信息（含角色与权限码）"},
+          "401": {"description": "未登录或登录已过期"}
+        }
+      }
+    },
+    "/api/auth/profile": {
+      "get": {
+        "tags": ["认证"],
+        "summary": "获取个人资料",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回个人资料"}}
+      },
+      "put": {
+        "tags": ["认证"],
+        "summary": "更新个人资料",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"name": "body", "in": "body", "schema": {"type": "object"}}
+        ],
+        "responses": {"200": {"description": "更新成功"}}
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "修改密码",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "old_password": {"type": "string"},
+                "new_password": {"type": "string"}
+              }
+            }
+          }
+        ],
+        "responses": {"200": {"description": "修改成功"}}
+      }
+    },
+
+    "/api/register/normal": {
+      "post": {
+        "tags": ["注册"],
+        "summary": "普通注册",
+        "description": "学生注册后直接激活；教师注册后等待审核",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "username": {"type": "string"},
+                "password": {"type": "string"},
+                "confirmPassword": {"type": "string"},
+                "name": {"type": "string"},
+                "role": {"type": "string", "enum": ["student", "teacher"]},
+                "school": {"type": "string"},
+                "studentId": {"type": "string", "description": "学生注册必填学号"},
+                "teacherId": {"type": "string", "description": "教师注册必填教工号"}
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {"description": "注册成功"},
+          "400": {"description": "参数错误或用户名/学号/工号已被占用"}
+        }
+      }
+    },
+    "/api/register/phone": {
+      "post": {
+        "tags": ["注册"],
+        "summary": "手机号验证码注册",
+        "responses": {"200": {"description": "注册成功"}, "400": {"description": "参数错误"}}
+      }
+    },
+    "/api/check/username": {
+      "get": {
+        "tags": ["注册"],
+        "summary": "校验用户名是否已被占用",
+        "parameters": [
+          {"name": "username", "in": "query", "type": "string", "required": true}
+        ],
+        "responses": {
+          "200": {"description": "返回 {\"exists\": true/false}"}
+        }
+      }
+    },
+
+    "/api/achievements/": {
+      "get": {
+        "tags": ["成果"],
+        "summary": "获取成果列表（分页/筛选）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"name": "page", "in": "query", "type": "integer", "default": 1},
+          {"name": "page_size", "in": "query", "type": "integer", "default": 20},
+          {"name": "title", "in": "query", "type": "string", "description": "按标题模糊搜索"}
+        ],
+        "responses": {"200": {"description": "返回成果列表"}}
+      },
+      "post": {
+        "tags": ["成果"],
+        "summary": "提交/新增成果",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "main_category": {"type": "string", "description": "主分类"},
+                "sub_category": {"type": "string", "description": "子分类"},
+                "title": {"type": "string", "description": "成果名称"},
+                "level": {"type": "string", "description": "获奖级别"},
+                "achieved_date": {"type": "string", "description": "获奖日期 YYYY-MM-DD"},
+                "description": {"type": "string"},
+                "keywords": {"type": "string"},
+                "members": {"type": "string", "description": "参与成员"},
+                "teacher_id": {"type": "string", "description": "指导教师"}
+              }
+            }
+          }
+        ],
+        "responses": {"201": {"description": "提交成功，状态待审核"}}
+      }
+    },
+    "/api/achievements/{id}": {
+      "parameters": [
+        {"name": "id", "in": "path", "required": true, "type": "integer"}
+      ],
+      "get": {
+        "tags": ["成果"],
+        "summary": "获取成果详情",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回成果详情"}}
+      },
+      "put": {
+        "tags": ["成果"],
+        "summary": "更新成果",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"name": "body", "in": "body", "schema": {"type": "object"}}
+        ],
+        "responses": {"200": {"description": "更新成功"}}
+      },
+      "delete": {
+        "tags": ["成果"],
+        "summary": "删除成果",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "删除成功"}}
+      }
+    },
+    "/api/achievements/{id}/audit": {
+      "parameters": [
+        {"name": "id", "in": "path", "required": true, "type": "integer"}
+      ],
+      "put": {
+        "tags": ["成果"],
+        "summary": "审核成果（通过/驳回）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {"type": "string", "enum": ["approved", "rejected"]},
+                "review_comment": {"type": "string"}
+              }
+            }
+          }
+        ],
+        "responses": {"200": {"description": "审核成功"}}
+      }
+    },
+    "/api/achievements/upload": {
+      "post": {
+        "tags": ["成果"],
+        "summary": "上传成果证明材料",
+        "security": [{"BearerAuth": []}],
+        "consumes": ["multipart/form-data"],
+        "parameters": [
+          {"name": "file", "in": "formData", "type": "file", "required": true}
+        ],
+        "responses": {"200": {"description": "返回文件URL"}}
+      }
+    },
+
+    "/api/students/": {
+      "get": {
+        "tags": ["学生"],
+        "summary": "学生列表（分页/搜索）",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回学生列表"}}
+      },
+      "post": {
+        "tags": ["学生"],
+        "summary": "添加学生（教师录入直接生效）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"name": "body", "in": "body", "schema": {"type": "object"}}
+        ],
+        "responses": {"201": {"description": "添加成功"}}
+      }
+    },
+    "/api/students/{id}": {
+      "parameters": [
+        {"name": "id", "in": "path", "required": true, "type": "integer"}
+      ],
+      "get": {
+        "tags": ["学生"],
+        "summary": "学生详情",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回学生详情"}}
+      },
+      "put": {
+        "tags": ["学生"],
+        "summary": "编辑学生",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "更新成功"}}
+      },
+      "delete": {
+        "tags": ["学生"],
+        "summary": "删除学生（成果保留）",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "删除成功"}}
+      }
+    },
+    "/api/students/{id}/reset-password": {
+      "post": {
+        "tags": ["学生"],
+        "summary": "重置学生密码",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "重置成功"}}
+      }
+    },
+
+    "/api/teachers/": {
+      "get": {
+        "tags": ["教师"],
+        "summary": "教师列表（分页）",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回教师列表"}}
+      },
+      "post": {
+        "tags": ["教师"],
+        "summary": "添加教师",
+        "security": [{"BearerAuth": []}],
+        "responses": {"201": {"description": "添加成功"}}
+      }
+    },
+    "/api/teachers/statistics": {
+      "get": {
+        "tags": ["教师"],
+        "summary": "教师统计（总数/待审核）",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回统计数字"}}
+      }
+    },
+    "/api/teachers/{id}": {
+      "parameters": [
+        {"name": "id", "in": "path", "required": true, "type": "integer"}
+      ],
+      "get": {
+        "tags": ["教师"],
+        "summary": "教师详情",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回教师详情"}}
+      },
+      "put": {
+        "tags": ["教师"],
+        "summary": "编辑教师",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "更新成功"}}
+      },
+      "delete": {
+        "tags": ["教师"],
+        "summary": "删除教师",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "删除成功"}}
+      }
+    },
+    "/api/teachers/{id}/approve": {
+      "post": {
+        "tags": ["教师"],
+        "summary": "审核教师",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "审核成功"}}
+      }
+    },
+
+    "/api/courses/": {
+      "get": {
+        "tags": ["课程"],
+        "summary": "课程列表（管理员全部，教师仅自建）",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回课程列表"}}
+      },
+      "post": {
+        "tags": ["课程"],
+        "summary": "创建课程",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "description": {"type": "string"}
+              }
+            }
+          }
+        ],
+        "responses": {"201": {"description": "创建成功"}}
+      }
+    },
+    "/api/courses/available": {
+      "get": {
+        "tags": ["课程"],
+        "summary": "学生可加入的课程列表",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回可加入课程"}}
+      }
+    },
+    "/api/courses/join": {
+      "post": {
+        "tags": ["课程"],
+        "summary": "通过邀请码加入课程",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"name": "body", "in": "body", "schema": {
+            "type": "object",
+            "properties": {"invite_code": {"type": "string"}}
+          }}
+        ],
+        "responses": {"200": {"description": "加入成功"}}
+      }
+    },
+    "/api/courses/my": {
+      "get": {
+        "tags": ["课程"],
+        "summary": "我的课程（教师）",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回我的课程"}}
+      }
+    },
+    "/api/courses/{course_id}/invite": {
+      "post": {
+        "tags": ["课程"],
+        "summary": "生成课程邀请码",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回6位邀请码"}}
+      }
+    },
+    "/api/courses/{course_id}/qrcode": {
+      "get": {
+        "tags": ["课程"],
+        "summary": "获取课程二维码",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回二维码图片"}}
+      }
+    },
+    "/api/courses/{course_id}/lock": {
+      "put": {
+        "tags": ["课程"],
+        "summary": "锁定/解锁课程",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "操作成功"}}
+      }
+    },
+    "/api/courses/{course_id}": {
+      "parameters": [
+        {"name": "course_id", "in": "path", "required": true, "type": "integer"}
+      ],
+      "get": {
+        "tags": ["课程"],
+        "summary": "课程详情",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回课程详情"}}
+      },
+      "put": {
+        "tags": ["课程"],
+        "summary": "编辑课程",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "更新成功"}}
+      },
+      "delete": {
+        "tags": ["课程"],
+        "summary": "删除课程",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "删除成功（记录系统日志）"}}
+      }
+    },
+
+    "/api/teams/": {
+      "get": {
+        "tags": ["团队"],
+        "summary": "团队列表",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回我创建的/我加入的/可加入的"}}
+      },
+      "post": {
+        "tags": ["团队"],
+        "summary": "创建团队",
+        "security": [{"BearerAuth": []}],
+        "responses": {"201": {"description": "创建成功"}}
+      }
+    },
+    "/api/teams/join": {
+      "post": {
+        "tags": ["团队"],
+        "summary": "通过邀请码加入团队",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "加入成功"}}
+      }
+    },
+    "/api/teams/{id}": {
+      "parameters": [
+        {"name": "id", "in": "path", "required": true, "type": "integer"}
+      ],
+      "delete": {
+        "tags": ["团队"],
+        "summary": "删除团队",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "删除成功"}}
+      }
+    },
+    "/api/teams/{id}/members": {
+      "get": {
+        "tags": ["团队"],
+        "summary": "团队成员列表",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回成员列表"}}
+      }
+    },
+
+    "/api/roles/": {
+      "get": {
+        "tags": ["权限"],
+        "summary": "角色列表",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回角色列表"}}
+      },
+      "post": {
+        "tags": ["权限"],
+        "summary": "创建自定义角色",
+        "security": [{"BearerAuth": []}],
+        "responses": {"201": {"description": "创建成功"}}
+      }
+    },
+    "/api/roles/{role_id}/permissions": {
+      "get": {
+        "tags": ["权限"],
+        "summary": "查看角色权限",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回角色权限码"}}
+      },
+      "put": {
+        "tags": ["权限"],
+        "summary": "修改角色权限",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "更新成功（记录系统日志）"}}
+      }
+    },
+    "/api/roles/permissions/all": {
+      "get": {
+        "tags": ["权限"],
+        "summary": "获取全部权限码分组",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回全部权限码"}}
+      }
+    },
+
+    "/api/stats/dashboard": {
+      "get": {
+        "tags": ["统计"],
+        "summary": "仪表盘统计数据",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "按角色返回统计"}}
+      }
+    },
+    "/api/stats/class": {
+      "get": {
+        "tags": ["统计"],
+        "summary": "课程维度统计",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回课程统计"}}
+      }
+    },
+    "/api/stats/school": {
+      "get": {
+        "tags": ["统计"],
+        "summary": "学校维度统计",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回学校统计"}}
+      }
+    },
+
+    "/api/settings/categories/": {
+      "get": {
+        "tags": ["设置"],
+        "summary": "成果分类列表",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回分类列表"}}
+      },
+      "post": {
+        "tags": ["设置"],
+        "summary": "新增分类",
+        "security": [{"BearerAuth": []}],
+        "responses": {"201": {"description": "创建成功"}}
+      }
+    },
+    "/api/settings/knowledge/": {
+      "get": {
+        "tags": ["设置"],
+        "summary": "知识条目列表",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回列表"}}
+      }
+    },
+
+    "/api/knowledge/": {
+      "get": {
+        "tags": ["知识库"],
+        "summary": "知识列表",
+        "responses": {"200": {"description": "返回列表"}}
+      },
+      "post": {
+        "tags": ["知识库"],
+        "summary": "新增知识",
+        "responses": {"201": {"description": "创建成功"}}
+      }
+    },
+    "/api/knowledge-base/": {
+      "get": {
+        "tags": ["知识库"],
+        "summary": "知识库文章列表",
+        "responses": {"200": {"description": "返回列表"}}
+      },
+      "post": {
+        "tags": ["知识库"],
+        "summary": "新增文章",
+        "responses": {"201": {"description": "创建成功"}}
+      }
+    },
+    "/api/knowledge-base/{id}": {
+      "get": {
+        "tags": ["知识库"],
+        "summary": "文章详情",
+        "responses": {"200": {"description": "返回详情"}}
+      }
+    },
+
+    "/api/student/export/certificates": {
+      "post": {
+        "tags": ["导出"],
+        "summary": "学生导出个人获奖证书",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回证书文件"}}
+      }
+    },
+    "/api/teacher/export/award-types": {
+      "get": {
+        "tags": ["导出"],
+        "summary": "获奖类型字典",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回获奖类型"}}
+      }
+    },
+    "/api/teacher/export/student/certificates": {
+      "post": {
+        "tags": ["导出"],
+        "summary": "教师批量导学生证书",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回证书文件"}}
+      }
+    },
+
+    "/api/user/avatar": {
+      "post": {
+        "tags": ["用户"],
+        "summary": "上传/更新头像",
+        "security": [{"BearerAuth": []}],
+        "consumes": ["multipart/form-data"],
+        "responses": {"200": {"description": "返回头像URL"}}
+      },
+      "get": {
+        "tags": ["用户"],
+        "summary": "获取头像",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回头像"}}
+      }
+    },
+
+    "/api/logs/": {
+      "get": {
+        "tags": ["日志"],
+        "summary": "系统日志列表（仅admin）",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"name": "page", "in": "query", "type": "integer", "default": 1},
+          {"name": "page_size", "in": "query", "type": "integer", "default": 20},
+          {"name": "action_type", "in": "query", "type": "string", "description": "操作类型筛选"},
+          {"name": "username", "in": "query", "type": "string", "description": "按用户模糊搜索"},
+          {"name": "start_date", "in": "query", "type": "string", "description": "开始日期 YYYY-MM-DD"},
+          {"name": "end_date", "in": "query", "type": "string", "description": "结束日期 YYYY-MM-DD"}
+        ],
+        "responses": {"200": {"description": "返回日志列表"}, "403": {"description": "无权限访问"}}
+      }
+    },
+
+    "/api/backup/list": {
+      "get": {
+        "tags": ["备份"],
+        "summary": "备份列表（仅admin）",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "返回备份文件列表，含文件名/大小/时间"}}
+      }
+    },
+    "/api/backup/create": {
+      "post": {
+        "tags": ["备份"],
+        "summary": "手动触发备份",
+        "security": [{"BearerAuth": []}],
+        "responses": {"200": {"description": "备份成功"}}
+      }
+    },
+    "/api/backup/download/{filename}": {
+      "get": {
+        "tags": ["备份"],
+        "summary": "下载备份文件",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"name": "filename", "in": "path", "required": true, "type": "string"}
+        ],
+        "responses": {"200": {"description": "返回备份文件"}}
+      }
+    },
+    "/api/backup/delete/{filename}": {
+      "delete": {
+        "tags": ["备份"],
+        "summary": "删除备份文件",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {"name": "filename", "in": "path", "required": true, "type": "string"}
+        ],
+        "responses": {"200": {"description": "删除成功"}}
+      }
+    }
+  }
+}

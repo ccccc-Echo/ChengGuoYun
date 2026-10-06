@@ -1,0 +1,7 @@
+@echo off
+chcp 936 >nul
+REM 成果云 - 一键启动前端（serve 构建产物并代理到后端 5000）
+cd /d "D:\成果云\backend"
+echo 正在启动前端页面 http://localhost:3000 ...
+py -3.8 "D:\成果云\backend\_serve_dist.py" 3000
+pause

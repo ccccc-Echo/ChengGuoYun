@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>团队类型选择器测试</title>
+    <style>
+        /* 测试样式 - 从实际CSS复制 */
+        .type-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .type-opt {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 20px;
+            background: #fff;
+            color: #5a5a6a;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .type-opt:hover {
+            border-color: #667eea;
+        }
+
+        .type-opt.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: #fff;
+        }
+
+        .type-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            min-height: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-panel">
+        <h2>团队类型选择器功能测试</h2>
+
+        <div class="type-selector">
+            <button class="type-opt" onclick="selectType('department')" data-type="department">
+                <span class="type-dot" style="background: #667eea;"></span>
+                院系
+            </button>
+            <button class="type-opt" onclick="selectType('subject_group')" data-type="subject_group">
+                <span class="type-dot" style="background: #9f7aea;"></span>
+                科组
+            </button>
+            <button class="type-opt" onclick="selectType('campus')" data-type="campus">
+                <span class="type-dot" style="background: #ed64a6;"></span>
+                校区
+            </button>
+            <button class="type-opt" onclick="selectType('grade')" data-type="grade">
+                <span class="type-dot" style="background: #48bb78;"></span>
+                年级
+            </button>
+            <button class="type-opt" onclick="selectType('other')" data-type="other">
+                <span class="type-dot" style="background: #4299e1;"></span>
+                其他
+            </button>
+        </div>
+
+        <div id="result">当前选中: <span id="currentType">请选择类型</span></div>
+
+        <button onclick="clearSelection()" style="margin-top: 10px; padding: 5px 10px;">清除选择</button>
+        <button onclick="validateStyles()" style="margin-top: 10px; padding: 5px 10px; background: #667eea; color: white;">验证样式</button>
+    </div>
+
+    <script>
+        let currentSelectedType = null;
+
+        function selectType(type) {
+            // 移除之前的选择样式
+            document.querySelectorAll('.type-opt').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+
+            // 添加新选择样式
+            const selectedOption = document.querySelector(`[data-type="${type}"]`);
+            if (selectedOption) {
+                selectedOption.classList.add('selected');
+                currentSelectedType = type;
+                document.getElementById('currentType').textContent = getTypeText(type);
+                console.log('选中类型:', type);
+            }
+        }
+
+        function getTypeText(type) {
+            const typeMap = {
+                'department': '院系',
+                'subject_group': '科组',
+                'campus': '校区',
+                'grade': '年级',
+                'other': '其他'
+            };
+            return typeMap[type] || '未知';
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.type-opt').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            currentSelectedType = null;
+            document.getElementById('currentType').textContent = '请选择类型';
+        }
+
+        function validateStyles() {
+            const testOpt = document.querySelector('.type-opt');
+            const styles = window.getComputedStyle(testOpt);
+            console.log('样式验证:');
+            console.log('- border-color:', styles.borderColor);
+            console.log('- cursor:', styles.cursor);
+            console.log('- transition:', styles.transition);
+
+            // 测试.selected样式
+            testOpt.classList.add('selected');
+            const selectedStyles = window.getComputedStyle(testOpt);
+            console.log('选中状态样式:');
+            console.log('- background:', selectedStyles.backgroundColor);
+            console.log('- color:', selectedStyles.color);
+            testOpt.classList.remove('selected');
+
+            alert('样式验证完成，请查看控制台输出');
+        }
+    </script>
+</body>
+</html>

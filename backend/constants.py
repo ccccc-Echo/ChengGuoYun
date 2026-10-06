@@ -1,0 +1,77 @@
+"""成果分类与级别标签映射（与前端 src/utils/constants.js 保持一致）"""
+
+MAIN_CATEGORY_MAP = {
+    'Xue Ke Jing Sai Lei': '学科竞赛类',
+    'Xue Shu Lun Wen Lei': '学术论文类',
+    'Zhi Shi Chan Quan Lei': '知识产权类',
+    'Ke Yan Xiang Mu Lei': '科研项目类',
+    'Rong Yu Biao Zhang Lei': '荣誉表彰类',
+    'Ji Neng Zheng Shu Lei': '技能证书类',
+    'She Hui Shi Jian Lei': '社会实践类'
+}
+
+SUB_CATEGORY_MAP = {
+    'Shu Xue Jian Mo': '数学建模',
+    'Hu Lian Wang +': '互联网+',
+    'Tiao Zhan Bei': '挑战杯',
+    'ACM': 'ACM',
+    'Dian Zi She Ji': '电子设计',
+    'Zhi Neng Che': '智能车',
+    'Pu Tong Qi Kan': '普通期刊',
+    'EI': 'EI',
+    'SCI': 'SCI',
+    'He Xin Qi Kan': '核心期刊',
+    'Hui Yi Lun Wen': '会议论文',
+    'Ruan Jian Zhu Zuo Quan': '软件著作权',
+    'Shi Yong Xin Xing': '实用新型',
+    'Fa Ming Zhuan Li': '发明专利',
+    'Wai Guan She Ji': '外观设计',
+    'Guo Jia Ji Da Chuang': '国家级大创',
+    'Sheng Ji Da Chuang': '省级大创',
+    'Xiao Ji Da Chuang': '校级大创',
+    'Can Yu Jiao Shi Ke Yan': '参与教师科研',
+    'Guo Jia Jiang Xue Jin': '国家奖学金',
+    'Li Zhi Jiang Xue Jin': '励志奖学金',
+    'San Hao Xue Sheng': '三好学生',
+    'You Xiu Gan Bu': '优秀干部',
+    'You Xiu Tuan Yuan': '优秀团员',
+    'Ying Yu Si Liu Ji': '英语四六级',
+    'Ji Suan Ji Deng Ji': '计算机等级',
+    'Jiao Shi Zi Ge Zheng': '教师资格证',
+    'Pu Tong Hua': '普通话',
+    'Zhi Ye Zi Ge Zheng': '职业资格证',
+    'Zhi Yuan Fu Wu': '志愿服务',
+    'She Hui Shi Jian': '社会实践',
+    'She Tuan Huo Dong': '社团活动'
+}
+
+LEVEL_MAP = {
+    'Xiao Ji': '校级',
+    'Sheng Ji': '省级',
+    'Guo Jia Ji': '国家级',
+    'Guo Ji Ji': '国际级'
+}
+
+TEAM_TYPE_MAP = {
+    'department': '院系',
+    'subject_group': '科组',
+    'campus': '校区',
+    'grade': '年级',
+    'other': '其他'
+}
+
+
+def get_main_category_label(value):
+    return MAIN_CATEGORY_MAP.get(value, value or '')
+
+
+def get_sub_category_label(value):
+    return SUB_CATEGORY_MAP.get(value, value or '')
+
+
+def get_level_label(value):
+    return LEVEL_MAP.get(value, value or '')
+
+
+def get_team_type_label(value):
+    return TEAM_TYPE_MAP.get(value, value or '')

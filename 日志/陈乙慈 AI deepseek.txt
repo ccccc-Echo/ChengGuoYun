@@ -1,0 +1,913 @@
+第一阶段：项目启动与需求分析
+对话 1：项目推荐
+用户：
+
+我已完成记账系统、在线考试系统、TodoApp 三个项目，现在想做第四个。想做一个 PC 端后台管理项目，面向高校场景，要求有多级权限、数据统计、审核流程。有什么推荐？
+
+DeepSeek 回复：
+
+推荐「成果云系统」。这是一个面向高校的学生成果档案管理平台，支持辅导员、院长等多级权限管理。系统可以自动收集整理学生获奖、证书、论文、专利等信息，一键生成可视化统计报表，辅助评估各班班风与学习情况。
+
+核心功能：
+
+学生录入个人成果（获奖、证书、论文、专利）
+
+辅导员审核本班学生成果
+
+院长查看全院统计报表
+
+多角色权限控制
+
+数据可视化（ECharts 图表）
+
+技术栈： Flask + Vue 3 + Element Plus + ECharts + MySQL
+
+开发周期： 10-14 天
+
+用户：
+
+确认做这个。技术栈就用你说的：Flask + MySQL + Vue 3 + Element Plus + ECharts。给我详细的项目设计方案。
+
+DeepSeek 回复：
+
+已生成完整项目设计方案：
+
+数据库设计（6张表）：
+
+users（用户表）：id, username, password_hash, role, name, email, created_at
+
+students（学生表）：id, user_id, student_no, class_id, major, phone, enrolled_at
+
+teachers（教师表）：id, user_id, teacher_no, department, title, phone
+
+classes（班级表）：id, name, department, advisor_id, grade, student_count
+
+achievements（成果表）：id, student_id, teacher_id, type, title, level, achieved_date, status
+
+achievement_attachments（附件表）：id, achievement_id, file_name, file_path
+
+角色权限设计：
+
+系统管理员（admin）：全部权限
+
+院系负责人（head）：管理本院系
+
+辅导员（advisor）：管理本班
+
+教师（faculty）：管理所指导学生
+
+学生（student）：仅个人数据
+
+接口设计：
+
+认证接口：login, register, me
+
+成果接口：CRUD + review
+
+统计接口：班级统计、全院统计、趋势分析
+
+第二阶段：数据库设计与建表
+对话 2：建表 SQL 生成
+用户：
+
+请生成完整的 MySQL 建表 SQL，包含 6 张表和外键关系，并插入初始测试数据。
+
+Trae 回复：
+
+已生成建表 SQL：
+
+-- 创建数据库
+CREATE DATABASE achievement_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE achievement_db;
+
+-- 1. 用户表
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin','head','advisor','faculty','student') NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    email VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. 教师表
+CREATE TABLE teachers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    teacher_no VARCHAR(20) UNIQUE NOT NULL,
+    department VARCHAR(100),
+    title VARCHAR(50),
+    phone VARCHAR(20),
+    role VARCHAR(20) DEFAULT 'faculty',
+    department_id INT DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. 班级表
+CREATE TABLE classes (
+    id VARCHAR(20) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    department VARCHAR(100),
+    advisor_id INT,
+    grade INT,
+    student_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (advisor_id) REFERENCES teachers(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. 学生表
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    student_no VARCHAR(20) UNIQUE NOT NULL,
+    class_id VARCHAR(20),
+    major VARCHAR(100),
+    phone VARCHAR(20),
+    avatar VARCHAR(255),
+    enrolled_at DATE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 5. 成果表
+CREATE TABLE achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    teacher_id INT,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    level VARCHAR(20) NOT NULL,
+    achieved_date DATE,
+    description TEXT,
+    status ENUM('pending','approved','rejected') DEFAULT 'pending',
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL,
+    review_comment TEXT,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 6. 附件表
+CREATE TABLE achievement_attachments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    achievement_id INT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    file_size BIGINT,
+    file_type VARCHAR(100),
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 插入管理员账号 (密码: 123456)
+INSERT INTO users (username, password_hash, role, name, email) VALUES
+('admin', 'pbkdf2:sha256:600000$...', 'admin', '系统管理员', 'admin@school.edu.cn');
+请执行以上 SQL 创建数据库和表结构。
+
+用户：
+
+执行后验证表结构。
+
+执行结果：
+
++--------------------------+
+| Tables_in_achievement_db |
++--------------------------+
+| achievement_attachments  |
+| achievement_knowledge    |
+| achievements             |
+| class_applications       |
+| classes                  |
+| proof_requirements       |
+| students                 |
+| teachers                 |
+| users                    |
++--------------------------+
+9 rows in set
+9 张表创建成功。
+
+对话 3：角色名称规范化
+用户：
+
+主任、辅导员、普通教师这些名字不好听，弄规范一点。
+
+Trae 回复：
+
+已更新角色名称：
+
+原名称	规范名称	英文
+主任	院系负责人	Department Head
+辅导员	班主任	Class Advisor
+普通教师	教师	Teacher
+教务管理员	教务管理员	Teaching Administrator
+学生	学生	Student
+用户：
+
+教务管理员不需要个人中心，教师要有审核所指导学生成果的权限。请调整权限矩阵。
+
+Trae 回复：
+
+已调整权限矩阵：
+
+权限模块	系统管理员	院系负责人	班主任	教师	教务管理员	学生
+查看本班学生	✅	✅	✅	❌	✅	❌
+查看所指导学生	✅	✅	❌	✅	❌	❌
+审核成果	✅	✅	✅	✅(所指导学生)	✅	❌
+查看个人成果	✅	✅	✅	✅	❌	✅
+个人中心	✅	✅	✅	✅	❌	✅
+对话 4：扩展表设计
+用户：
+
+需要添加成果知识库、证明材料要求、班级申请等扩展表。
+
+Trae 回复：
+
+已生成扩展表 SQL：
+
+-- 成果知识库表
+CREATE TABLE achievement_knowledge (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    sub_category VARCHAR(100),
+    level VARCHAR(20) NOT NULL,
+    keywords TEXT,
+    proof_required TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 证明材料要求表
+CREATE TABLE proof_requirements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category VARCHAR(50) NOT NULL,
+    sub_category VARCHAR(100),
+    proof_type VARCHAR(100) NOT NULL,
+    is_required TINYINT(1) DEFAULT 1,
+    description TEXT
+);
+
+-- 班级申请表
+CREATE TABLE class_applications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    class_id VARCHAR(20) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP NULL,
+    processed_by INT,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+);
+第三阶段：后端开发
+对话 5：Flask 后端框架生成
+用户：
+
+请生成 Flask 后端完整代码，包含认证、成果管理、统计接口。
+
+Trae 回复：
+
+已生成后端项目结构：
+
+backend/
+├── app.py                  # Flask 应用入口
+├── config.py               # 配置文件
+├── extensions.py           # 扩展初始化（db、jwt）
+├── models.py               # 数据模型
+├── auth.py                 # 认证接口
+├── achievement.py          # 成果管理接口
+├── classes.py              # 班级管理接口
+├── students.py             # 学生管理接口
+├── teachers.py             # 教师管理接口
+├── stats.py                # 统计报表接口
+├── decorators/
+│   └── permissions.py      # 权限装饰器
+├── utils/
+│   └── helpers.py          # 工具函数
+└── requirements.txt        # 依赖清单
+遇到的问题：
+
+问题 1：ModuleNotFoundError: No module named 'MySQLdb'
+
+Traceback (most recent call last):
+  File "app.py", line 1, in <module>
+    from flask import Flask
+  File "C:\miniconda\Lib\site-packages\flask_sqlalchemy\extension.py", line 665, in _make_engine
+    return sa.engine_from_config(options, prefix="")
+  File "C:\miniconda\Lib\site-packages\sqlalchemy\dialects\mysql\mysqldb.py", line 167, in import_dbapi
+    return __import__("MySQLdb")
+ModuleNotFoundError: No module named 'MySQLdb'
+解决方案：
+
+python
+import pymysql
+pymysql.install_as_MySQLdb()
+问题 2：JWT identity 类型错误
+
+{ "msg": "Subject must be a string" }
+解决方案：
+
+python
+# 错误
+token = create_access_token(identity=user.id)
+
+# 正确
+token = create_access_token(identity=str(user.id))
+问题 3：循环导入
+
+python
+# app.py → auth.py → models.py → app.py（循环）
+解决方案：
+创建 extensions.py 统一管理 db 实例：
+
+python
+# extensions.py
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
+
+db = SQLAlchemy()
+jwt = JWTManager()
+
+# app.py
+from extensions import db, jwt
+
+# models.py
+from extensions import db
+
+# auth.py
+from extensions import db
+from models import User
+对话 6：权限装饰器生成
+用户：
+
+请生成权限装饰器，控制不同角色的接口访问。
+
+Trae 回复：
+
+已生成 decorators/permissions.py：
+
+python
+from functools import wraps
+from flask import jsonify
+from flask_jwt_extended import get_jwt_identity
+from models import User
+
+def role_required(*allowed_roles):
+    """角色权限装饰器"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = get_jwt_identity()
+            user = User.query.get(int(user_id))
+            if not user:
+                return jsonify({'error': '用户不存在'}), 404
+            if user.role not in allowed_roles:
+                return jsonify({'error': '权限不足'}), 403
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def admin_required(f):
+    """管理员权限"""
+    return role_required('admin')(f)
+
+def teacher_required(f):
+    """教师及以上权限"""
+    return role_required('admin', 'head', 'advisor', 'faculty', 'teaching_admin')(f)
+
+def advisor_required(f):
+    """班主任权限"""
+    return role_required('admin', 'head', 'advisor')(f)
+使用示例：
+
+python
+@achievement_bp.route('/<int:id>/review', methods=['PUT'])
+@role_required('admin', 'head', 'advisor', 'faculty', 'teaching_admin')
+def review_achievement(id):
+    # 审核成果逻辑
+    pass
+
+@achievement_bp.route('/', methods=['POST'])
+@role_required('student')
+def create_achievement():
+    # 学生录入成果
+    pass
+对话 7：统计接口 500 错误修复
+用户：
+
+统计报表接口返回 500 错误，head 角色看不到数据。
+
+错误信息：
+
+GET /api/stats/class/ 500 (INTERNAL SERVER ERROR)
+Trae 排查：
+
+问题原因：teachers 表中缺少教师记录，导致关联查询失败。head 角色在查询时关联到 teachers 表，但 h001 用户没有对应的教师记录。
+
+解决方案：
+
+-- 插入缺失的教师记录
+INSERT INTO teachers (user_id, teacher_no, department, title, phone, role, department_id) VALUES
+((SELECT id FROM users WHERE username = 'h001'), 'h001', '计算机学院', '院长', '13800138001', 'head', 1),
+((SELECT id FROM users WHERE username = 'a001'), 'a001', '计算机学院', '辅导员', '13800138002', 'advisor', 1);
+同时添加空值判断：
+
+python
+# stats.py
+if current_user.role == 'head':
+    # 获取本院系数据
+    department_id = current_user.teacher.department_id if current_user.teacher else 0
+    if department_id == 0:
+        return jsonify({'stats': []}), 200  # 没有关联院系时返回空
+对话 8：后端目录重构
+用户：
+
+需要把路由文件拆分到 routes/ 文件夹，添加权限装饰器。
+
+Trae 回复：
+
+已完成目录重构：
+
+backend/
+├── routes/
+│   ├── __init__.py
+│   ├── auth.py
+│   ├── achievements.py
+│   ├── students.py
+│   ├── teachers.py
+│   ├── classes.py
+│   ├── stats.py
+│   └── knowledge.py
+├── decorators/
+│   ├── __init__.py
+│   └── permissions.py
+├── utils/
+│   ├── __init__.py
+│   └── helpers.py
+└── app.py
+第四阶段：账号体系重构
+对话 9：账号重命名与对应关系
+用户：
+
+重构账号体系，建立清晰的师生对应关系。
+
+变更清单：
+
+教师账号：
+
+原用户名	新用户名	姓名	角色
+head_li	h001	李院长	院系负责人
+admin_zhang	保持不变	张教务	教务管理员
+advisor_wang	a001	王辅导员	班主任
+(新增)	a002	陈辅导员	班主任
+teacher_zhou	t001	周教师	教师
+(新增)	t002	孙教师	教师
+(新增)	t003	周教师	教师
+学生账号：
+
+原用户名	新用户名	姓名
+s001	s001001	王小明
+s002	s001002	李华
+s003	s001003	赵小红
+s004	s002001	钱伟
+s005	s002002	孙丽
+zhangsan	s002003	张三
+test001	s002004	测试
+对应关系：
+
+a001（王辅导员）→ t001（周教师）→ s001001、s001002、s001003
+
+a002（陈辅导员）→ t002（孙教师）→ s002001、s002002、s002003
+
+对话 10：SQL 迁移执行
+用户：
+
+执行账号迁移 SQL 时报错。
+
+错误信息：
+
+ERROR 1062 (23000): Duplicate entry 't001' for key 'users.username'
+ERROR 1054 (42S22): Unknown column 'advisor_id' in 'field list'
+Trae 回复：
+
+生成修复 SQL：
+
+-- 1. 添加 advisor_id 字段
+ALTER TABLE teachers ADD COLUMN advisor_id INT NULL;
+
+-- 2. 清理重复数据
+DELETE FROM users WHERE username = 't001' AND id != (SELECT user_id FROM teachers WHERE teacher_no = 'T001');
+
+-- 3. 更新用户名
+UPDATE users SET username = 'h001' WHERE username = 'head_li';
+UPDATE users SET username = 'a001' WHERE username = 'advisor_wang';
+UPDATE users SET username = 't001' WHERE username = 'teacher_zhou';
+
+-- 4. 更新学生学号
+UPDATE students s JOIN users u ON s.user_id = u.id SET s.student_no = 's001001' WHERE u.username = 's001';
+-- ... 其余学生
+
+-- 5. 插入新教师
+INSERT INTO users (username, password_hash, role, name) VALUES
+('a002', '...', 'teacher', '陈辅导员'),
+('t002', '...', 'teacher', '孙教师');
+对话 11：验证账号迁移
+用户：
+
+验证迁移结果。
+
+验证结果：
+
++----------+-----------+---------+
+| username | name      | role    |
++----------+-----------+---------+
+| s001001  | 王小明    | student |
+| s001002  | 李华      | student |
+| s001003  | 赵小红    | student |
+| s002001  | 钱伟      | student |
+| s002002  | 孙丽      | student |
+| s002003  | 张三      | student |
++----------+-----------+---------+
+6 rows in set
+
++-------+--------+---------+
+| username | name      | role    |
++-------+--------+---------+
+| h001  | 李院长    | teacher |
+| a001  | 王辅导员  | teacher |
+| a002  | 陈辅导员  | teacher |
+| t001  | 周教师    | teacher |
+| t002  | 孙教师    | teacher |
+| t003  | 周教师    | teacher |
++-------+--------+---------+
+第五阶段：成果分类体系
+对话 12：分类结构设计
+用户：
+
+设计两级分类体系（一级分类 + 二级细分）。
+
+分类结构：
+
+一级分类	二级细分
+学科竞赛类	ACM、数学建模、互联网+、挑战杯、电子设计、智能车
+学术论文类	SCI、EI、核心期刊、普通期刊、会议论文
+知识产权类	发明专利、实用新型、外观设计、软件著作权
+科研项目类	国家级大创、省级大创、校级大创、参与教师科研
+荣誉表彰类	国家奖学金、励志奖学金、三好学生、优秀干部、优秀团员
+技能证书类	英语四六级、计算机等级、教师资格证、普通话、职业资格证
+社会实践类	志愿服务、社会实践、社团活动
+数据库修改：
+
+-- 删除旧的 category 字段
+ALTER TABLE achievements DROP COLUMN category;
+
+-- 添加两级分类字段
+ALTER TABLE achievements ADD COLUMN main_category VARCHAR(50) NOT NULL;
+ALTER TABLE achievements ADD COLUMN sub_category VARCHAR(50) NULL;
+对话 13：成果数据插入（字符集问题）
+用户：
+
+插入成果数据时报错 Incorrect string value。
+
+错误信息：
+
+ERROR 1366 (HY000): Incorrect string value: '\xBF\xC6\xBE\xBA\xC8\xFC...' for column 'main_category' at row 1
+尝试的解决方案：
+
+设置连接字符集：
+
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+修改表和字段字符集：
+
+ALTER TABLE achievements CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE achievements MODIFY main_category VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+修改 MySQL 配置文件 my.ini：
+
+ini
+[mysqld]
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+init-connect='SET NAMES utf8mb4'
+删除并重建表：
+
+DROP TABLE IF EXISTS achievement_attachments;
+DROP TABLE IF EXISTS achievements;
+CREATE TABLE achievements (...);
+对话 14：字符集问题持续（拉锯战）
+用户：
+
+还是不行，改完配置文件后 MySQL 启动不了。
+
+错误信息：
+
+net start MySQL80 启动失败
+原因： my.ini 配置文件格式错误或添加位置不对。
+
+Trae 回复：
+
+请检查 my.ini 中 [mysqld] 的位置，确保添加在第一个 [mysqld] 下面。如果启动失败，先删除添加的三行，重启 MySQL，然后用 SQL 命令临时设置：
+
+SET GLOBAL character_set_server = 'utf8mb4';
+SET GLOBAL collation_server = 'utf8mb4_unicode_ci';
+用户：
+
+管理员权限打开 my.ini 失败。
+
+Trae 回复：
+
+以管理员身份运行记事本，然后打开 C:\ProgramData\MySQL\MySQL Server 8.0\my.ini。
+
+用户：
+
+没找到 my.ini，只有 Data 和 Uploads 文件夹。
+
+Trae 回复：
+
+搜索 my.ini 在以下位置：
+
+C:\Program Files\MySQL\MySQL Server 8.0\my.ini
+
+C:\ProgramData\MySQL\MySQL Server 8.0\my.ini
+
+C:\Windows\my.ini
+
+或者在 MySQL 中执行：SHOW VARIABLES LIKE 'config_file';
+
+对话 15：最终决定 - 拼音方案
+用户：
+
+算了算了，像这样吧，拼音就拼音。
+
+Trae 回复：
+
+好的，采用拼音存储方案。已插入 18 条成果数据：
+
+INSERT INTO achievements (student_id, main_category, sub_category, title, level, achieved_date, description, status) VALUES
+(1, 'Xue Ke Jing Sai Lei', 'Shu Xue Jian Mo', 'Quan Guo Da Xue Sheng Shu Xue Jian Mo Jing Sai Sheng Yi Deng Jiang', 'Sheng Ji', '2024-09-15', 'Can Jia Quan Guo Da Xue Sheng Shu Xue Jian Mo Jing Sai, Huo De Sheng Ji Yi Deng Jiang', 'approved'),
+(1, 'Ji Neng Zheng Shu Lei', 'Ying Yu Si Liu Ji', 'Da Xue Ying Yu Liu Ji CET-6', 'Xiao Ji', '2024-06-10', 'Tong Guo Da Xue Ying Yu Liu Ji Kao Shi', 'approved'),
+-- ... 共 18 条
+验证结果：
+
++------------+-----------+-------------------+
+| student_no | name      | achievement_count |
++------------+-----------+-------------------+
+| s001001    | 王小明    |                 3 |
+| s001002    | 李华      |                 3 |
+| s001003    | 赵小红    |                 3 |
+| s002001    | 钱伟      |                 3 |
+| s002002    | 孙丽      |                 3 |
+| s002003    | 张三      |                 3 |
++------------+-----------+-------------------+
+6 rows in set
+对话 16：前端映射代码
+用户：
+
+生成前端映射代码，把拼音显示为中文。
+
+Trae 回复：
+
+已生成 frontend/src/utils/constants.js：
+
+// 一级分类映射
+export const mainCategoryMap = {
+  'Xue Ke Jing Sai Lei': '学科竞赛类',
+  'Xue Shu Lun Wen Lei': '学术论文类',
+  'Zhi Shi Chan Quan Lei': '知识产权类',
+  'Ke Yan Xiang Mu Lei': '科研项目类',
+  'Rong Yu Biao Zhang Lei': '荣誉表彰类',
+  'Ji Neng Zheng Shu Lei': '技能证书类',
+  'She Hui Shi Jian Lei': '社会实践类'
+}
+
+// 二级分类映射
+export const subCategoryMap = {
+  'Shu Xue Jian Mo': '数学建模',
+  'Hu Lian Wang +': '互联网+',
+  'Tiao Zhan Bei': '挑战杯',
+  'ACM': 'ACM',
+  'Pu Tong Qi Kan': '普通期刊',
+  'EI': 'EI',
+  'Ruan Jian Zhu Zuo Quan': '软件著作权',
+  'Shi Yong Xin Xing': '实用新型',
+  'Guo Jia Ji Da Chuang': '国家级大创',
+  'Guo Jia Jiang Xue Jin': '国家奖学金',
+  'Li Zhi Jiang Xue Jin': '励志奖学金',
+  'San Hao Xue Sheng': '三好学生',
+  'You Xiu Tuan Yuan': '优秀团员',
+  'Ying Yu Si Liu Ji': '英语四六级',
+  'Ji Suan Ji Deng Ji': '计算机等级',
+  'Jiao Shi Zi Ge Zheng': '教师资格证',
+  'Pu Tong Hua': '普通话',
+  'Zhi Yuan Fu Wu': '志愿服务'
+}
+
+// 级别映射
+export const levelMap = {
+  'Xiao Ji': '校级',
+  'Sheng Ji': '省级',
+  'Guo Jia Ji': '国家级',
+  'Guo Ji Ji': '国际级'
+}
+
+// 工具函数
+export const getMainCategoryLabel = (value) => mainCategoryMap[value] || value
+export const getSubCategoryLabel = (value) => subCategoryMap[value] || value
+export const getLevelLabel = (value) => levelMap[value] || value
+前端页面修改：
+
+<!-- 成果列表页 -->
+<template>
+  <el-table-column prop="main_category" label="一级分类">
+    <template #default="{ row }">
+      {{ getMainCategoryLabel(row.main_category) }}
+    </template>
+  </el-table-column>
+</template>
+
+<script setup>
+import { getMainCategoryLabel, getSubCategoryLabel, getLevelLabel } from '@/utils/constants'
+</script>
+第六阶段：界面优化
+对话 17：面包屑导航修复
+用户：
+
+录入成果页面顶部显示「仪表盘 / 录入成果」，应该只显示「录入成果」。
+
+Trae 回复：
+
+已修改面包屑组件，只显示当前页面标题：
+
+<!-- Layout.vue 或 Breadcrumb.vue -->
+<template>
+  <el-breadcrumb separator="/">
+    <el-breadcrumb-item>{{ currentPageTitle }}</el-breadcrumb-item>
+  </el-breadcrumb>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const currentPageTitle = computed(() => {
+  return route.meta.title || route.name || '未知页面'
+})
+</script>
+对话 18：侧边栏折叠功能
+用户：
+
+左边菜单栏增加折叠/展开功能，类似你那样的。
+
+Trae 回复：
+
+已修改 Sidebar.vue，添加折叠/展开功能：
+
+<template>
+  <aside :class="{ collapsed: isCollapsed }">
+    <div class="toggle-btn" @click="toggleCollapse">
+      <el-icon><Expand v-if="isCollapsed" /><Fold v-else /></el-icon>
+    </div>
+    <el-menu :collapse="isCollapsed" :collapse-transition="false">
+      <!-- 菜单项 -->
+    </el-menu>
+  </aside>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const isCollapsed = ref(false)
+
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value
+}
+</script>
+
+<style scoped>
+aside {
+  width: 200px;
+  transition: width 0.3s ease;
+}
+aside.collapsed {
+  width: 64px;
+}
+.toggle-btn {
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+}
+</style>
+第七阶段：收费功能讨论
+对话 19：收费功能设计
+用户：
+
+加入收费功能，你觉得有什么功能是可以用来收费的？
+
+DeepSeek 回复：
+
+根据教育行业收费系统的调研，以下是可行的收费方向：
+
+1. SaaS 订阅制（按角色/模块）：
+
+版本	适用对象	功能	价格建议
+免费版	单个班级	基础录入、查看、审核	免费
+标准版	院系	多班级管理、统计报表、数据导出	5,000-10,000 元/年
+专业版	全校	全院数据、多维度分析、自定义报表	15,000-30,000 元/年
+2. 按使用量收费：
+
+计费项	说明	价格建议
+按成果条数	超出免费额度后计费	0.5-2 元/条
+按活跃用户数	按实际使用的账号数量计费	10-50 元/账号/年
+3. 增值功能：
+
+成果知识库（预置全国竞赛、证书分类库）→ 按年订阅
+
+智能查重（辅助辅导员核实成果真伪）→ 按次/按年
+
+移动端小程序 → 独立收费
+
+定制开发（对接教务系统、统一认证）→ 一次性项目费
+
+参考产品：
+
+金数据专业版：2,399 元/年
+
+智慧校园管理信息系统企业版：数万元/年以上
+
+第八阶段：项目问题修复汇总
+对话 20：字符集问题总结
+问题： MySQL 插入中文时报错 Incorrect string value
+
+尝试的解决方案：
+
+SET NAMES utf8mb4 → 临时生效，下次连接失效
+
+ALTER TABLE CONVERT TO CHARACTER SET utf8mb4 → 外键约束阻止
+
+修改 my.ini → 权限不足/找不到文件
+
+删除外键后修改 → 仍有个别字段报错
+
+重建表 → 插入时仍报错
+
+根本原因： MySQL 服务端 character_set_server 不是 utf8mb4，而修改配置文件需要管理员权限且文件位置不确定。
+
+最终决定： 采用拼音存储，前端映射显示中文。
+
+对话 21：账号体系问题汇总
+问题： 多个教师账号在 teachers 表中缺少记录
+
+解决方案：
+
+-- 清理并重新插入
+DELETE FROM teachers;
+INSERT INTO teachers (user_id, teacher_no, department, title, phone, role, department_id) VALUES
+((SELECT id FROM users WHERE username = 'h001'), 'h001', '计算机学院', '院长', '13800138001', 'head', 1),
+((SELECT id FROM users WHERE username = 'a001'), 'a001', '计算机学院', '辅导员', '13800138002', 'advisor', 1);
+对话 22：成果分类字段迁移
+问题： achievements 表的 type 字段需要改为两级分类
+
+解决方案：
+
+ALTER TABLE achievements ADD COLUMN main_category VARCHAR(50) NOT NULL;
+ALTER TABLE achievements ADD COLUMN sub_category VARCHAR(50) NULL;
+ALTER TABLE achievements DROP COLUMN type;
+第九阶段：项目总结
+用户：
+导出这个项目的 AI 对话记录，要详细。
+
+关键技术决策记录
+决策点	选择	原因
+认证方式	JWT	前后端分离，无状态
+数据库驱动	pymysql	Windows 兼容性好
+成果分类	两级结构	更精细的统计维度
+字符集方案	拼音存储 + 前端映射	避免 MySQL 字符集问题
+角色体系	6 种角色	覆盖高校管理场景
+权限控制	装饰器模式	代码复用性高
+主要问题与解决记录
+问题	解决方案
+MySQLdb 缺失	pymysql.install_as_MySQLdb()
+JWT identity 类型错误	str(user.id)
+循环导入	extensions.py 统一管理
+中文插入乱码	拼音存储 + 前端映射
+外键阻止修改	先删除外键，修改后重建
+统计接口 500	补充教师记录 + 空值判断
+账号重复	清理重复记录后重新插入
+角色名称不规范	统一为规范名称
+当前测试账号
+角色	用户名	密码
+系统管理员	admin	123456
+院系负责人	h001	123456
+班主任	a001	123456
+班主任	a002	123456
+教师	t001	123456
+教师	t002	123456
+教师	t003	123456
+教务管理员	admin_zhang	123456
+学生	s001001	123456
+学生	s001002	123456
+学生	s001003	123456
+学生	s002001	123456
+学生	s002002	123456
+学生	s002003	123456

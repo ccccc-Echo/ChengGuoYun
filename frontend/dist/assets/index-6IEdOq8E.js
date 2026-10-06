@@ -1,0 +1,1 @@
+import e from"./index-PqFcuKcF.js";import{_ as t,o,c as a,d as r}from"./index-B4HpM3ua.js";import"./index-Bn9PLWWT.js";import"./index-BZDihlOi.js";import"./constants-CKc1ioFo.js";const s={class:"student-dashboard-wrapper"},c={__name:"index",setup(_){return(d,p)=>(o(),a("div",s,[r(e)]))}},l=t(c,[["__scopeId","data-v-643afe94"]]);export{l as default};

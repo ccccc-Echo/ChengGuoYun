@@ -1,0 +1,7 @@
+@echo off
+chcp 936 >nul
+REM 成果云 - 一键启动后端（使用 venv 内置 Python，避免错用系统老版本）
+cd /d "D:\成果云\backend"
+echo 正在启动后端服务 http://localhost:5000 ...
+"D:\成果云\backend\.venv\Scripts\python.exe" app.py
+pause
